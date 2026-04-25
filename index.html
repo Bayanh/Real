@@ -2,7 +2,8 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Billiards - Menu Trong Lòng Bàn</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Billiards - Xoay Ngang & Menu Phải</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { margin: 0; background-color: #050505; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
@@ -14,13 +15,35 @@
             max-width: 95vw;
             max-height: 98vh;
             aspect-ratio: 1604 / 891;
-            /* ĐÃ THAY LINK ẢNH MỚI (DẠNG RAW) TẠI ĐÂY */
             background-image: url('https://raw.githubusercontent.com/Bayanh/Real/main/1E350EB3-498B-4583-91D1-45178C866646.png');
             background-size: 100% 100%;
             border-radius: 10px;
         }
 
         canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
+
+        /* MÀN HÌNH BẮT ĐẦU ĐỂ KÍCH HOẠT FULLSCREEN */
+        #start-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #050505;
+            z-index: 99999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #start-btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            background: #ff66ff;
+            color: black;
+            border: none;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(255, 102, 255, 0.6);
+            text-transform: uppercase;
+        }
 
         /* NÚT MỞ - NHỎ GỌN Ở GIỮA */
         #toggle-btn {
@@ -38,19 +61,20 @@
             cursor: pointer;
             box-shadow: 0 0 10px rgba(255, 102, 255, 0.5);
             font-size: 11px;
+            display: none; /* Ẩn lúc đầu chưa vào game */
         }
 
-        /* MENU NẰM GỌN TRONG LÒNG BÀN (KHÔNG CHẠM BĂNG) */
+        /* MENU DỊCH SANG PHẢI */
         #editor-panel {
             display: none; 
             position: absolute;
             top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            right: 20px; /* Chuyển từ left sang right */
+            left: auto;
+            transform: translateY(-50%);
             
-            /* Giới hạn kích thước để không chạm vào băng 85px */
             width: 220px; 
-            max-height: 500px; /* Giới hạn chiều cao để không chạm băng trên/dưới */
+            max-height: 90vh; /* Thu gọn chiều cao để không bị lố trên mobile */
             
             overflow-y: auto;
             background: rgba(10, 10, 10, 0.85); 
@@ -96,6 +120,10 @@
 </head>
 <body>
 
+    <div id="start-screen">
+        <button id="start-btn" onclick="startGame()">Chơi Ngay</button>
+    </div>
+
     <button id="toggle-btn" onclick="toggleEditor(true)">⚙️ CĂN CHỈNH</button>
 
     <div id="editor-panel">
@@ -110,6 +138,31 @@
     <div id="game-container"></div>
 
 <script>
+    // Hàm kích hoạt Fullscreen và ép màn hình xoay ngang
+    function startGame() {
+        let elem = document.documentElement;
+        
+        // Request Fullscreen
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => console.log(err));
+        } else if (elem.webkitRequestFullscreen) { /* Safari */
+            elem.webkitRequestFullscreen().catch(err => console.log(err));
+        } else if (elem.msRequestFullscreen) { /* IE11 */
+            elem.msRequestFullscreen().catch(err => console.log(err));
+        }
+
+        // Lock Landscape
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(function(error) {
+                console.log("Không thể ép khóa xoay màn hình tự động (Có thể do thiết bị hoặc trình duyệt không hỗ trợ): ", error);
+            });
+        }
+
+        // Ẩn màn hình bắt đầu và hiện nút Cài đặt
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('toggle-btn').style.display = 'block';
+    }
+
     window.toggleEditor = function(show) {
         document.getElementById('editor-panel').style.display = show ? 'block' : 'none';
         document.getElementById('toggle-btn').style.display = show ? 'none' : 'block';
@@ -151,7 +204,16 @@
         physicsBodies = [];
         const thick = 500; 
         const pOpts = { isStatic: true, isSensor: true, label: 'pocket', render: { fillStyle: 'rgba(255, 0, 0, 0.6)' } };
-        const cOpts = { isStatic: true, restitution: 0.8, friction: 0.05, render: { fillStyle: 'rgba(0, 255, 0, 0.4)' } };
+        
+        // BO TRÒN GÓC BĂNG XANH - Đã giảm radius xuống 10 để góc sắc hơn một chút (bạn có thể chỉnh lại số 10 này)
+        const cOpts = { 
+            isStatic: true, 
+            restitution: 0.8, 
+            friction: 0.05, 
+            render: { fillStyle: 'rgba(0, 255, 0, 0.4)' },
+            chamfer: { radius: 30 } 
+        };
+
         cfg.pockets.forEach(p => physicsBodies.push(Bodies.circle(p.x, p.y, p.r, pOpts)));
         cfg.cushions.forEach(c => {
             let b;
