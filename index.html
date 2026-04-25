@@ -208,7 +208,7 @@
         const thick = 500; 
         const pOpts = { isStatic: true, isSensor: true, label: 'pocket', render: { fillStyle: 'rgba(255, 0, 0, 0.6)' } };
         
-        // CẬP NHẬT RADIUS LÊN 25 TẠI ĐÂY
+        // CẤU HÌNH BĂNG XANH - ĐÃ ÁP DỤNG RADIUS 25 CHO TOÀN BỘ 6 THANH
         const cOpts = { 
             isStatic: true, 
             restitution: 0.8, 
@@ -218,6 +218,8 @@
         };
 
         cfg.pockets.forEach(p => physicsBodies.push(Bodies.circle(p.x, p.y, p.r, pOpts)));
+        
+        // Vòng lặp này sẽ tự tạo 6 thanh băng với bo góc cOpts ở trên
         cfg.cushions.forEach(c => {
             let b;
             if (c.type === 'top') b = Bodies.rectangle(c.x, c.edge - thick/2, c.length, thick, cOpts);
@@ -226,6 +228,7 @@
             else if (c.type === 'right') b = Bodies.rectangle(WIDTH - c.edge + thick/2, c.y, thick, c.length, cOpts);
             physicsBodies.push(b);
         });
+        
         Composite.add(engine.world, physicsBodies);
     }
 
