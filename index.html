@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Game Bida Matter.js - Độ phân giải cao (1604x891)</title>
+    <title>Game Bida - Chế độ Màn hình ngang</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { 
@@ -14,13 +14,33 @@
             align-items: center; 
             height: 100vh; 
         }
+        
+        /* Ép buộc hiển thị nằm ngang (landscape) cho trải nghiệm vật lý tốt nhất */
+        @media screen and (orientation: portrait) {
+            body::before {
+                content: "Vui lòng xoay ngang thiết bị để hiển thị bàn bi-a!";
+                color: #ff66ff;
+                font-size: 24px;
+                font-weight: bold;
+                font-family: sans-serif;
+                text-align: center;
+                padding: 20px;
+                position: absolute;
+                z-index: 100;
+            }
+            canvas { display: none !important; }
+        }
+
         canvas { 
             box-shadow: 0 20px 80px rgba(0,0,0,0.9); 
             border-radius: 20px;
-            /* Đảm bảo canvas tự động thu nhỏ lại vừa màn hình nếu bạn mở trên màn hình nhỏ hơn 1604px */
             max-width: 98vw;
             max-height: 98vh;
-            object-fit: contain;
+            
+            /* GỌI TRỰC TIẾP FILE ẢNH TRONG MÁY */
+            background-image: url('table.png'); /* Đổi thành table.jpg nếu ảnh của bạn là jpg */
+            background-size: 100% 100%; 
+            background-repeat: no-repeat;
         }
     </style>
 </head>
@@ -38,7 +58,6 @@
     const engine = Engine.create();
     engine.gravity.y = 0; 
 
-    // --- KÍCH THƯỚC CHUẨN MỚI ---
     const WIDTH = 1604;
     const HEIGHT = 891;
 
@@ -49,16 +68,14 @@
             width: WIDTH,
             height: HEIGHT,
             wireframes: false, 
-            background: 'transparent'
+            background: 'transparent' 
         }
     });
 
-    // --- ĐIỀU CHỈNH TỶ LỆ VẬT LÝ ---
-    // Phóng to kích thước bàn kéo theo băng cũng dày hơn để bi đập đúng vạch nỉ
     const wallThick = 114; 
     const wallOptions = { 
         isStatic: true, 
-        restitution: 0.85, // Độ nảy của băng duy trì ở mức khá tốt
+        restitution: 0.85, 
         friction: 0.1,
         render: { visible: false } 
     };
@@ -68,32 +85,18 @@
     const leftWall = Bodies.rectangle(wallThick/2, HEIGHT/2, wallThick, HEIGHT, wallOptions);
     const rightWall = Bodies.rectangle(WIDTH - wallThick/2, HEIGHT/2, wallThick, HEIGHT, wallOptions);
 
-    // Bán kính viên bi được tăng lên mức 24px để cân xứng với chiếc bàn khổng lồ
     const cueBall = Bodies.circle(WIDTH * 0.75, HEIGHT / 2, 24, {
         restitution: 0.9, 
         friction: 0.005,  
-        frictionAir: 0.01, // Giảm một chút xíu nữa để bi lăn tự nhiên trên quãng đường dài
+        frictionAir: 0.01, 
         render: { 
             fillStyle: '#ffffff',
-            sprite: { xScale: 1, yScale: 1 } 
+            strokeStyle: '#cccccc', 
+            lineWidth: 2
         }
     });
 
     Composite.add(engine.world, [topWall, bottomWall, leftWall, rightWall, cueBall]);
-
-    const canvas = render.canvas;
-    const ctx = canvas.getContext('2d');
-    const tableImg = new Image();
-    tableImg.src = 'table.png'; 
-
-    (function renderLoop() {
-        window.requestAnimationFrame(renderLoop);
-        if (tableImg.complete) {
-            ctx.globalCompositeOperation = 'destination-over';
-            ctx.drawImage(tableImg, 0, 0, WIDTH, HEIGHT);
-            ctx.globalCompositeOperation = 'source-over';
-        }
-    })();
 
     const mouse = Mouse.create(render.canvas);
     const mouseConstraint = MouseConstraint.create(engine, {
