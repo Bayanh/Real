@@ -2,48 +2,55 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Game Bida - Khung Vật Lý Cơ Bản</title>
+    <title>Game Bida - Khắc Phục Lỗi Hiển Thị</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { 
             margin: 0; 
-            background: #0a0a0a; 
-            overflow: hidden; 
+            background-color: #111; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
             height: 100vh; 
-        }
-        
-        @media screen and (orientation: portrait) {
-            body::before {
-                content: "Vui lòng xoay ngang thiết bị để hiển thị bàn bi-a!";
-                color: #ff66ff;
-                font-size: 24px;
-                font-weight: bold;
-                font-family: sans-serif;
-                text-align: center;
-                padding: 20px;
-                position: absolute;
-                z-index: 100;
-            }
-            canvas { display: none !important; }
+            overflow: hidden;
         }
 
-        canvas { 
-            box-shadow: 0 20px 80px rgba(0,0,0,0.9); 
-            border-radius: 20px;
+        /* Khung chứa game cố định tỷ lệ */
+        #game-container {
+            position: relative;
+            width: 1604px;
+            height: 891px;
             max-width: 98vw;
             max-height: 98vh;
+            aspect-ratio: 1604 / 891;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             
-            /* SỬ DỤNG ĐƯỜNG DẪN TƯƠNG ĐỐI - CHUẨN GITHUB PAGES */
-            background-image: url('./table.png');
-            background-size: 100% 100%; 
+            /* MÀU TÍM DỰ PHÒNG: Nếu ảnh lỗi, hộp này sẽ có màu tím */
+            background-color: #8A1C9A; 
+            
+            /* LINK ẢNH IMGBB CỦA BẠN */
+            background-image: url('https://i.ibb.co/MwHF9qv/H-nh-nh-PNG.png');
+            background-size: 100% 100%;
             background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* Lớp vật lý đè lên trên */
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 20px;
+            pointer-events: auto; /* Cho phép click chuột */
         }
     </style>
 </head>
 <body>
+
+    <div id="game-container"></div>
 
 <script>
     const Engine = Matter.Engine,
@@ -57,17 +64,15 @@
     const engine = Engine.create();
     engine.gravity.y = 0; 
 
-    const WIDTH = 1604;
-    const HEIGHT = 891;
-
+    // Gắn Render vào trong cái hộp #game-container thay vì thẻ body
     const render = Render.create({
-        element: document.body,
+        element: document.getElementById('game-container'),
         engine: engine,
         options: {
-            width: WIDTH,
-            height: HEIGHT,
+            width: 1604,
+            height: 891,
             wireframes: false, 
-            background: 'transparent' 
+            background: 'transparent' // Bắt buộc trong suốt để lộ ảnh bên dưới
         }
     });
 
@@ -79,12 +84,12 @@
         render: { visible: false } 
     };
 
-    const topWall = Bodies.rectangle(WIDTH/2, wallThick/2, WIDTH, wallThick, wallOptions);
-    const bottomWall = Bodies.rectangle(WIDTH/2, HEIGHT - wallThick/2, WIDTH, wallThick, wallOptions);
-    const leftWall = Bodies.rectangle(wallThick/2, HEIGHT/2, wallThick, HEIGHT, wallOptions);
-    const rightWall = Bodies.rectangle(WIDTH - wallThick/2, HEIGHT/2, wallThick, HEIGHT, wallOptions);
+    const topWall = Bodies.rectangle(1604/2, wallThick/2, 1604, wallThick, wallOptions);
+    const bottomWall = Bodies.rectangle(1604/2, 891 - wallThick/2, 1604, wallThick, wallOptions);
+    const leftWall = Bodies.rectangle(wallThick/2, 891/2, wallThick, 891, wallOptions);
+    const rightWall = Bodies.rectangle(1604 - wallThick/2, 891/2, wallThick, 891, wallOptions);
 
-    const cueBall = Bodies.circle(WIDTH * 0.75, HEIGHT / 2, 24, {
+    const cueBall = Bodies.circle(1604 * 0.75, 891 / 2, 24, {
         restitution: 0.9, 
         friction: 0.005,  
         frictionAir: 0.01, 
