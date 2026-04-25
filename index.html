@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Billiards - Xoay Ngang & Menu Phải (Có Ô Nhập Số)</title>
+    <title>Billiards - Bo Tròn Băng Radius 25</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { margin: 0; background-color: #050505; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
@@ -22,7 +22,6 @@
 
         canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
 
-        /* MÀN HÌNH BẮT ĐẦU ĐỂ KÍCH HOẠT FULLSCREEN */
         #start-screen {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -45,7 +44,6 @@
             text-transform: uppercase;
         }
 
-        /* NÚT MỞ - NHỎ GỌN Ở GIỮA */
         #toggle-btn {
             position: absolute;
             top: 50%;
@@ -64,7 +62,6 @@
             display: none; 
         }
 
-        /* MENU DỊCH SANG PHẢI */
         #editor-panel {
             display: none; 
             position: absolute;
@@ -72,10 +69,8 @@
             right: 20px; 
             left: auto;
             transform: translateY(-50%);
-            
-            width: 230px; /* Tăng nhẹ chiều rộng để chứa ô nhập số */
+            width: 230px; 
             max-height: 90vh; 
-            
             overflow-y: auto;
             background: rgba(10, 10, 10, 0.85); 
             backdrop-filter: blur(5px);
@@ -109,7 +104,6 @@
         b { display: block; margin-bottom: 2px; color: #fff; font-size: 10px; }
         label { display: flex; flex-direction: column; font-size: 9px; color: #bbb; margin-bottom: 5px; position: relative; }
         
-        /* CỘNG THÊM CSS CHO Ô NHẬP SỐ */
         .val-input {
             background: rgba(0, 0, 0, 0.5);
             color: #00e676;
@@ -125,7 +119,6 @@
             top: -2px;
         }
         .val-input:focus { outline: none; border-color: #ff66ff; color: #fff; }
-        /* Ẩn mũi tên mặc định của input type="number" */
         .val-input::-webkit-outer-spin-button, .val-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
         input[type="range"] { width: 100%; margin-top: 15px; accent-color: #ff66ff; height: 2px; cursor: pointer; }
@@ -215,12 +208,13 @@
         const thick = 500; 
         const pOpts = { isStatic: true, isSensor: true, label: 'pocket', render: { fillStyle: 'rgba(255, 0, 0, 0.6)' } };
         
+        // CẬP NHẬT RADIUS LÊN 25 TẠI ĐÂY
         const cOpts = { 
             isStatic: true, 
             restitution: 0.8, 
             friction: 0.05, 
             render: { fillStyle: 'rgba(0, 255, 0, 0.4)' },
-            chamfer: { radius: 10 } 
+            chamfer: { radius: 25 } 
         };
 
         cfg.pockets.forEach(p => physicsBodies.push(Bodies.circle(p.x, p.y, p.r, pOpts)));
@@ -266,10 +260,9 @@
     }
 
     window.updateConfig = function(cat, idx, key, val) {
-        let numVal = parseInt(val) || 0; // Chuyển đổi an toàn sang số
+        let numVal = parseInt(val) || 0; 
         cfg[cat][idx][key] = numVal;
 
-        // Đồng bộ hóa ô nhập số và thanh trượt
         let prefix = cat === 'pockets' ? 'p' : 'c';
         let numInput = document.getElementById(`n_${prefix}_${idx}_${key}`);
         let rangeInput = document.getElementById(`r_${prefix}_${idx}_${key}`);
