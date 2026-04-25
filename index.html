@@ -2,117 +2,211 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Game Bida - Khắc Phục Lỗi Hiển Thị</title>
+    <title>Billiards - Menu Trong Lòng Bàn</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            background-color: #111; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            overflow: hidden;
-        }
-
-        /* Khung chứa game cố định tỷ lệ */
+        body { margin: 0; background-color: #050505; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
+        
         #game-container {
             position: relative;
             width: 1604px;
             height: 891px;
-            max-width: 98vw;
+            max-width: 95vw;
             max-height: 98vh;
             aspect-ratio: 1604 / 891;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-            
-            /* MÀU TÍM DỰ PHÒNG: Nếu ảnh lỗi, hộp này sẽ có màu tím */
-            background-color: #8A1C9A; 
-            
-            /* LINK ẢNH IMGBB CỦA BẠN */
-            background-image: url('https://i.ibb.co/MwHF9qv/H-nh-nh-PNG.png');
+            background-image: url('https://raw.githubusercontent.com/Bayanh/Real/refs/heads/main/table.png');
             background-size: 100% 100%;
-            background-repeat: no-repeat;
-            background-position: center;
+            border-radius: 10px;
         }
 
-        /* Lớp vật lý đè lên trên */
-        canvas {
+        canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
+
+        /* NÚT MỞ - NHỎ GỌN Ở GIỮA */
+        #toggle-btn {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100% !important;
-            height: 100% !important;
-            border-radius: 20px;
-            pointer-events: auto; /* Cho phép click chuột */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            padding: 6px 12px;
+            background: #ff66ff;
+            color: black;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 102, 255, 0.5);
+            font-size: 11px;
+        }
+
+        /* MENU NẰM GỌN TRONG LÒNG BÀN (KHÔNG CHẠM BĂNG) */
+        #editor-panel {
+            display: none; 
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            
+            /* Giới hạn kích thước để không chạm vào băng 85px */
+            width: 220px; 
+            max-height: 500px; /* Giới hạn chiều cao để không chạm băng trên/dưới */
+            
+            overflow-y: auto;
+            background: rgba(10, 10, 10, 0.85); 
+            backdrop-filter: blur(5px);
+            color: #ddd;
+            padding: 10px;
+            border-radius: 8px;
+            z-index: 10000;
+            border: 1px solid #ff66ff;
+            box-shadow: 0 0 30px rgba(0,0,0,1);
+            box-sizing: border-box;
+        }
+        
+        #editor-panel::-webkit-scrollbar { width: 3px; }
+        #editor-panel::-webkit-scrollbar-thumb { background: #ff66ff; }
+        
+        .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        h2 { margin: 0; font-size: 11px; color: #ffeb3b; text-transform: uppercase; }
+        #close-btn { background: #ff4444; color: white; border: none; padding: 2px 5px; border-radius: 3px; cursor: pointer; font-size: 9px; }
+        
+        h3 { font-size: 10px; color: #ff66ff; border-bottom: 1px solid #333; padding-bottom: 2px; margin: 10px 0 5px 0; }
+        
+        .control-group {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 5px;
+            margin-bottom: 4px;
+            border-radius: 4px;
+            border-left: 2px solid #ff66ff;
+        }
+        .control-group.cushion { border-left-color: #00e676; }
+        
+        b { display: block; margin-bottom: 2px; color: #fff; font-size: 10px; }
+        label { display: flex; flex-direction: column; font-size: 9px; color: #bbb; margin-bottom: 5px; }
+        .val-display { color: #00e676; font-weight: bold; margin-left: 4px; }
+        input[type="range"] { width: 100%; margin-top: 2px; accent-color: #ff66ff; height: 2px; cursor: pointer; }
+        .cushion input[type="range"] { accent-color: #00e676; }
+
+        #export-btn {
+            width: 100%; padding: 6px; background: #2196F3; color: white; border: none; 
+            border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 8px; font-size: 10px;
         }
     </style>
 </head>
 <body>
 
+    <button id="toggle-btn" onclick="toggleEditor(true)">⚙️ CĂN CHỈNH</button>
+
+    <div id="editor-panel">
+        <div class="header-flex">
+            <h2>🛠️ CÀI ĐẶT</h2>
+            <button id="close-btn" onclick="toggleEditor(false)">ĐÓNG</button>
+        </div>
+        <div id="ui-container"></div>
+        <button id="export-btn" onclick="exportData()">XUẤT THÔNG SỐ</button>
+    </div>
+
     <div id="game-container"></div>
 
 <script>
-    const Engine = Matter.Engine,
-          Render = Matter.Render,
-          Runner = Matter.Runner,
-          Bodies = Matter.Bodies,
-          Composite = Matter.Composite,
-          Mouse = Matter.Mouse,
-          MouseConstraint = Matter.MouseConstraint;
+    window.toggleEditor = function(show) {
+        document.getElementById('editor-panel').style.display = show ? 'block' : 'none';
+        document.getElementById('toggle-btn').style.display = show ? 'none' : 'block';
+    };
 
+    const { Engine, Render, Bodies, Composite, Mouse, MouseConstraint, Events } = Matter;
     const engine = Engine.create();
     engine.gravity.y = 0; 
+    const WIDTH = 1604, HEIGHT = 891;
 
-    // Gắn Render vào trong cái hộp #game-container thay vì thẻ body
+    const cfg = {
+        pockets: [
+            { id: 'pTL', name: '🔴 Góc Trái - Trên', x: 87, y: 87, r: 38 },
+            { id: 'pTM', name: '🔴 Giữa - Trên', x: 802, y: 65, r: 38 },
+            { id: 'pTR', name: '🔴 Góc Phải - Trên', x: 1517, y: 87, r: 38 },
+            { id: 'pBL', name: '🔴 Góc Trái - Dưới', x: 87, y: 804, r: 38 },
+            { id: 'pBM', name: '🔴 Giữa - Dưới', x: 802, y: 826, r: 38 },
+            { id: 'pBR', name: '🔴 Góc Phải - Dưới', x: 1517, y: 804, r: 38 }
+        ],
+        cushions: [
+            { id: 'cTopL', name: '🟩 Băng Trái - Trên', type: 'top', x: 449, edge: 85, length: 610 },
+            { id: 'cTopR', name: '🟩 Băng Phải - Trên', type: 'top', x: 1155, edge: 85, length: 610 },
+            { id: 'cBotL', name: '🟩 Băng Trái - Dưới', type: 'bot', x: 449, edge: 85, length: 610 },
+            { id: 'cBotR', name: '🟩 Băng Phải - Dưới', type: 'bot', x: 1155, edge: 85, length: 610 },
+            { id: 'cLeft', name: '🟩 Băng Dọc - Trái', type: 'left', y: 445, edge: 85, length: 580 },
+            { id: 'cRight', name: '🟩 Băng Dọc - Phải', type: 'right', y: 445, edge: 85, length: 580 }
+        ]
+    };
+
     const render = Render.create({
         element: document.getElementById('game-container'),
         engine: engine,
-        options: {
-            width: 1604,
-            height: 891,
-            wireframes: false, 
-            background: 'transparent' // Bắt buộc trong suốt để lộ ảnh bên dưới
-        }
+        options: { width: WIDTH, height: HEIGHT, wireframes: false, background: 'transparent' }
     });
 
-    const wallThick = 114; 
-    const wallOptions = { 
-        isStatic: true, 
-        restitution: 0.85, 
-        friction: 0.1,
-        render: { visible: false } 
+    let physicsBodies = []; 
+    function rebuildTable() {
+        if (physicsBodies.length > 0) Composite.remove(engine.world, physicsBodies);
+        physicsBodies = [];
+        const thick = 500; 
+        const pOpts = { isStatic: true, isSensor: true, label: 'pocket', render: { fillStyle: 'rgba(255, 0, 0, 0.6)' } };
+        const cOpts = { isStatic: true, restitution: 0.8, friction: 0.05, render: { fillStyle: 'rgba(0, 255, 0, 0.4)' } };
+        cfg.pockets.forEach(p => physicsBodies.push(Bodies.circle(p.x, p.y, p.r, pOpts)));
+        cfg.cushions.forEach(c => {
+            let b;
+            if (c.type === 'top') b = Bodies.rectangle(c.x, c.edge - thick/2, c.length, thick, cOpts);
+            else if (c.type === 'bot') b = Bodies.rectangle(c.x, HEIGHT - c.edge + thick/2, c.length, thick, cOpts);
+            else if (c.type === 'left') b = Bodies.rectangle(c.edge - thick/2, c.y, thick, c.length, cOpts);
+            else if (c.type === 'right') b = Bodies.rectangle(WIDTH - c.edge + thick/2, c.y, thick, c.length, cOpts);
+            physicsBodies.push(b);
+        });
+        Composite.add(engine.world, physicsBodies);
+    }
+
+    function buildUI() {
+        let h = `<h3>CHỈNH 6 LỖ ĐỎ</h3>`;
+        cfg.pockets.forEach((p, i) => {
+            h += `<div class="control-group"><b>${p.name}</b>
+                <label>X: <span class="val-display" id="v_p_${i}_x">${p.x}</span><input type="range" min="0" max="1604" value="${p.x}" oninput="updateConfig('pockets', ${i}, 'x', this.value)"></label>
+                <label>Y: <span class="val-display" id="v_p_${i}_y">${p.y}</span><input type="range" min="0" max="891" value="${p.y}" oninput="updateConfig('pockets', ${i}, 'y', this.value)"></label>
+                <label>R: <span class="val-display" id="v_p_${i}_r">${p.r}</span><input type="range" min="10" max="100" value="${p.r}" oninput="updateConfig('pockets', ${i}, 'r', this.value)"></label>
+            </div>`;
+        });
+        h += `<h3>CHỈNH 6 BĂNG XANH</h3>`;
+        cfg.cushions.forEach((c, i) => {
+            h += `<div class="control-group cushion"><b>${c.name}</b>
+                <label>Dài: <span class="val-display" id="v_c_${i}_length">${c.length}</span><input type="range" min="100" max="1000" value="${c.length}" oninput="updateConfig('cushions', ${i}, 'length', this.value)"></label>
+                <label>Vào/Ra: <span class="val-display" id="v_c_${i}_edge">${c.edge}</span><input type="range" min="30" max="200" value="${c.edge}" oninput="updateConfig('cushions', ${i}, 'edge', this.value)"></label>
+                <label>${c.type==='top'||c.type==='bot'?'X':'Y'}: <span class="val-display" id="v_c_${i}_${c.type==='top'||c.type==='bot'?'x':'y'}">${c.type==='top'||c.type==='bot'?c.x:c.y}</span><input type="range" min="0" max="1604" value="${c.type==='top'||c.type==='bot'?c.x:c.y}" oninput="updateConfig('cushions', ${i}, '${c.type==='top'||c.type==='bot'?'x':'y'}', this.value)"></label>
+            </div>`;
+        });
+        document.getElementById('ui-container').innerHTML = h;
+    }
+
+    window.updateConfig = function(cat, idx, key, val) {
+        cfg[cat][idx][key] = parseInt(val);
+        document.getElementById(`v_${cat==='pockets'?'p':'c'}_${idx}_${key}`).innerText = val;
+        rebuildTable();
     };
 
-    const topWall = Bodies.rectangle(1604/2, wallThick/2, 1604, wallThick, wallOptions);
-    const bottomWall = Bodies.rectangle(1604/2, 891 - wallThick/2, 1604, wallThick, wallOptions);
-    const leftWall = Bodies.rectangle(wallThick/2, 891/2, wallThick, 891, wallOptions);
-    const rightWall = Bodies.rectangle(1604 - wallThick/2, 891/2, wallThick, 891, wallOptions);
+    buildUI(); rebuildTable();
+    const cueBall = Bodies.circle(WIDTH * 0.7, HEIGHT / 2, 22, { label: 'cueBall', restitution: 0.9, frictionAir: 0.015, render: { fillStyle: '#ffffff' } });
+    Composite.add(engine.world, [cueBall]);
 
-    const cueBall = Bodies.circle(1604 * 0.75, 891 / 2, 24, {
-        restitution: 0.9, 
-        friction: 0.005,  
-        frictionAir: 0.01, 
-        render: { 
-            fillStyle: '#ffffff',
-            strokeStyle: '#cccccc', 
-            lineWidth: 2
-        }
+    Events.on(engine, 'collisionStart', (e) => {
+        e.pairs.forEach(p => {
+            if ((p.bodyA.label==='cueBall' && p.bodyB.label==='pocket') || (p.bodyB.label==='cueBall' && p.bodyA.label==='pocket')) {
+                Matter.Body.setVelocity(cueBall, { x: 0, y: 0 });
+                Matter.Body.setPosition(cueBall, { x: WIDTH / 2, y: HEIGHT / 2 });
+            }
+        });
     });
 
-    Composite.add(engine.world, [topWall, bottomWall, leftWall, rightWall, cueBall]);
-
-    const mouse = Mouse.create(render.canvas);
-    const mouseConstraint = MouseConstraint.create(engine, {
-        mouse: mouse,
-        constraint: { stiffness: 0.2, render: { visible: false } }
-    });
-    Composite.add(engine.world, mouseConstraint);
-
+    Composite.add(engine.world, MouseConstraint.create(engine, { mouse: Mouse.create(render.canvas), constraint: { stiffness: 0.2, render: { visible: false } } }));
     Render.run(render);
-    const runner = Runner.create();
-    Runner.run(runner, engine);
+    (function update() { for (let i=0; i<4; i++) Engine.update(engine, 1000/60/4); window.requestAnimationFrame(update); })();
 
+    window.exportData = () => { prompt("COPY thông số này nhé:", JSON.stringify(cfg, null, 4)); };
 </script>
 </body>
 </html>
