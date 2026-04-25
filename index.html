@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Billiards - Xoay Ngang & Menu Phải</title>
+    <title>Billiards - Xoay Ngang & Menu Phải (Có Ô Nhập Số)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         body { margin: 0; background-color: #050505; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: sans-serif; }
@@ -61,7 +61,7 @@
             cursor: pointer;
             box-shadow: 0 0 10px rgba(255, 102, 255, 0.5);
             font-size: 11px;
-            display: none; /* Ẩn lúc đầu chưa vào game */
+            display: none; 
         }
 
         /* MENU DỊCH SANG PHẢI */
@@ -69,12 +69,12 @@
             display: none; 
             position: absolute;
             top: 50%;
-            right: 20px; /* Chuyển từ left sang right */
+            right: 20px; 
             left: auto;
             transform: translateY(-50%);
             
-            width: 220px; 
-            max-height: 90vh; /* Thu gọn chiều cao để không bị lố trên mobile */
+            width: 230px; /* Tăng nhẹ chiều rộng để chứa ô nhập số */
+            max-height: 90vh; 
             
             overflow-y: auto;
             background: rgba(10, 10, 10, 0.85); 
@@ -107,9 +107,28 @@
         .control-group.cushion { border-left-color: #00e676; }
         
         b { display: block; margin-bottom: 2px; color: #fff; font-size: 10px; }
-        label { display: flex; flex-direction: column; font-size: 9px; color: #bbb; margin-bottom: 5px; }
-        .val-display { color: #00e676; font-weight: bold; margin-left: 4px; }
-        input[type="range"] { width: 100%; margin-top: 2px; accent-color: #ff66ff; height: 2px; cursor: pointer; }
+        label { display: flex; flex-direction: column; font-size: 9px; color: #bbb; margin-bottom: 5px; position: relative; }
+        
+        /* CỘNG THÊM CSS CHO Ô NHẬP SỐ */
+        .val-input {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00e676;
+            border: 1px solid #555;
+            border-radius: 3px;
+            width: 50px;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px;
+            text-align: center;
+            position: absolute;
+            right: 0;
+            top: -2px;
+        }
+        .val-input:focus { outline: none; border-color: #ff66ff; color: #fff; }
+        /* Ẩn mũi tên mặc định của input type="number" */
+        .val-input::-webkit-outer-spin-button, .val-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        input[type="range"] { width: 100%; margin-top: 15px; accent-color: #ff66ff; height: 2px; cursor: pointer; }
         .cushion input[type="range"] { accent-color: #00e676; }
 
         #export-btn {
@@ -138,27 +157,18 @@
     <div id="game-container"></div>
 
 <script>
-    // Hàm kích hoạt Fullscreen và ép màn hình xoay ngang
     function startGame() {
         let elem = document.documentElement;
-        
-        // Request Fullscreen
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(err => console.log(err));
-        } else if (elem.webkitRequestFullscreen) { /* Safari */
-            elem.webkitRequestFullscreen().catch(err => console.log(err));
-        } else if (elem.msRequestFullscreen) { /* IE11 */
-            elem.msRequestFullscreen().catch(err => console.log(err));
-        }
+        if (elem.requestFullscreen) { elem.requestFullscreen().catch(err => console.log(err)); }
+        else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen().catch(err => console.log(err)); }
+        else if (elem.msRequestFullscreen) { elem.msRequestFullscreen().catch(err => console.log(err)); }
 
-        // Lock Landscape
         if (screen.orientation && screen.orientation.lock) {
             screen.orientation.lock('landscape').catch(function(error) {
-                console.log("Không thể ép khóa xoay màn hình tự động (Có thể do thiết bị hoặc trình duyệt không hỗ trợ): ", error);
+                console.log("Không thể ép khóa xoay màn hình tự động: ", error);
             });
         }
 
-        // Ẩn màn hình bắt đầu và hiện nút Cài đặt
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('toggle-btn').style.display = 'block';
     }
@@ -205,13 +215,12 @@
         const thick = 500; 
         const pOpts = { isStatic: true, isSensor: true, label: 'pocket', render: { fillStyle: 'rgba(255, 0, 0, 0.6)' } };
         
-        // BO TRÒN GÓC BĂNG XANH - Đã giảm radius xuống 10 để góc sắc hơn một chút (bạn có thể chỉnh lại số 10 này)
         const cOpts = { 
             isStatic: true, 
             restitution: 0.8, 
             friction: 0.05, 
             render: { fillStyle: 'rgba(0, 255, 0, 0.4)' },
-            chamfer: { radius: 30 } 
+            chamfer: { radius: 10 } 
         };
 
         cfg.pockets.forEach(p => physicsBodies.push(Bodies.circle(p.x, p.y, p.r, pOpts)));
@@ -230,25 +239,44 @@
         let h = `<h3>CHỈNH 6 LỖ ĐỎ</h3>`;
         cfg.pockets.forEach((p, i) => {
             h += `<div class="control-group"><b>${p.name}</b>
-                <label>X: <span class="val-display" id="v_p_${i}_x">${p.x}</span><input type="range" min="0" max="1604" value="${p.x}" oninput="updateConfig('pockets', ${i}, 'x', this.value)"></label>
-                <label>Y: <span class="val-display" id="v_p_${i}_y">${p.y}</span><input type="range" min="0" max="891" value="${p.y}" oninput="updateConfig('pockets', ${i}, 'y', this.value)"></label>
-                <label>R: <span class="val-display" id="v_p_${i}_r">${p.r}</span><input type="range" min="10" max="100" value="${p.r}" oninput="updateConfig('pockets', ${i}, 'r', this.value)"></label>
+                <label>X: <input type="number" class="val-input" id="n_p_${i}_x" value="${p.x}" oninput="updateConfig('pockets', ${i}, 'x', this.value)">
+                          <input type="range" id="r_p_${i}_x" min="0" max="1604" value="${p.x}" oninput="updateConfig('pockets', ${i}, 'x', this.value)"></label>
+                <label>Y: <input type="number" class="val-input" id="n_p_${i}_y" value="${p.y}" oninput="updateConfig('pockets', ${i}, 'y', this.value)">
+                          <input type="range" id="r_p_${i}_y" min="0" max="891" value="${p.y}" oninput="updateConfig('pockets', ${i}, 'y', this.value)"></label>
+                <label>R: <input type="number" class="val-input" id="n_p_${i}_r" value="${p.r}" oninput="updateConfig('pockets', ${i}, 'r', this.value)">
+                          <input type="range" id="r_p_${i}_r" min="10" max="100" value="${p.r}" oninput="updateConfig('pockets', ${i}, 'r', this.value)"></label>
             </div>`;
         });
         h += `<h3>CHỈNH 6 BĂNG XANH</h3>`;
         cfg.cushions.forEach((c, i) => {
+            let xyKey = (c.type === 'top' || c.type === 'bot') ? 'x' : 'y';
+            let xyVal = (c.type === 'top' || c.type === 'bot') ? c.x : c.y;
+            let xyMax = (c.type === 'top' || c.type === 'bot') ? 1604 : 891;
+
             h += `<div class="control-group cushion"><b>${c.name}</b>
-                <label>Dài: <span class="val-display" id="v_c_${i}_length">${c.length}</span><input type="range" min="100" max="1000" value="${c.length}" oninput="updateConfig('cushions', ${i}, 'length', this.value)"></label>
-                <label>Vào/Ra: <span class="val-display" id="v_c_${i}_edge">${c.edge}</span><input type="range" min="30" max="200" value="${c.edge}" oninput="updateConfig('cushions', ${i}, 'edge', this.value)"></label>
-                <label>${c.type==='top'||c.type==='bot'?'X':'Y'}: <span class="val-display" id="v_c_${i}_${c.type==='top'||c.type==='bot'?'x':'y'}">${c.type==='top'||c.type==='bot'?c.x:c.y}</span><input type="range" min="0" max="1604" value="${c.type==='top'||c.type==='bot'?c.x:c.y}" oninput="updateConfig('cushions', ${i}, '${c.type==='top'||c.type==='bot'?'x':'y'}', this.value)"></label>
+                <label>Dài: <input type="number" class="val-input" id="n_c_${i}_length" value="${c.length}" oninput="updateConfig('cushions', ${i}, 'length', this.value)">
+                            <input type="range" id="r_c_${i}_length" min="100" max="1500" value="${c.length}" oninput="updateConfig('cushions', ${i}, 'length', this.value)"></label>
+                <label>Vào/Ra: <input type="number" class="val-input" id="n_c_${i}_edge" value="${c.edge}" oninput="updateConfig('cushions', ${i}, 'edge', this.value)">
+                               <input type="range" id="r_c_${i}_edge" min="30" max="300" value="${c.edge}" oninput="updateConfig('cushions', ${i}, 'edge', this.value)"></label>
+                <label>${xyKey.toUpperCase()}: <input type="number" class="val-input" id="n_c_${i}_${xyKey}" value="${xyVal}" oninput="updateConfig('cushions', ${i}, '${xyKey}', this.value)">
+                           <input type="range" id="r_c_${i}_${xyKey}" min="0" max="${xyMax}" value="${xyVal}" oninput="updateConfig('cushions', ${i}, '${xyKey}', this.value)"></label>
             </div>`;
         });
         document.getElementById('ui-container').innerHTML = h;
     }
 
     window.updateConfig = function(cat, idx, key, val) {
-        cfg[cat][idx][key] = parseInt(val);
-        document.getElementById(`v_${cat==='pockets'?'p':'c'}_${idx}_${key}`).innerText = val;
+        let numVal = parseInt(val) || 0; // Chuyển đổi an toàn sang số
+        cfg[cat][idx][key] = numVal;
+
+        // Đồng bộ hóa ô nhập số và thanh trượt
+        let prefix = cat === 'pockets' ? 'p' : 'c';
+        let numInput = document.getElementById(`n_${prefix}_${idx}_${key}`);
+        let rangeInput = document.getElementById(`r_${prefix}_${idx}_${key}`);
+
+        if (numInput && numInput.value != numVal) numInput.value = numVal;
+        if (rangeInput && rangeInput.value != numVal) rangeInput.value = numVal;
+
         rebuildTable();
     };
 
