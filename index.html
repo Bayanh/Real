@@ -1,0 +1,170 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhimTube Pro - Xem Phim Online</title>
+    <style>
+        :root {
+            --primary: #ff0000;
+            --bg: #0f0f0f;
+            --surface: #1e1e1e;
+            --text: #ffffff;
+            --text-dim: #aaaaaa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
+        body { background-color: var(--bg); color: var(--text); line-height: 1.6; }
+
+        /* Navigation */
+        nav {
+            position: fixed; top: 0; width: 100%; background: rgba(15, 15, 15, 0.98);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 2%; z-index: 1000; height: 60px;
+        }
+        .logo { color: var(--primary); font-size: 24px; font-weight: bold; text-decoration: none; }
+        .search-box { display: flex; width: 40%; background: #121212; border: 1px solid #333; border-radius: 40px; padding: 2px 5px; }
+        .search-box input { 
+            flex: 1; background: transparent; border: none; color: white; 
+            padding: 8px 15px; outline: none; font-size: 16px; 
+        }
+        .search-box button { background: transparent; border: none; color: white; cursor: pointer; padding: 0 15px; }
+
+        /* Categories */
+        .tags { margin-top: 70px; padding: 10px 2%; display: flex; gap: 10px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+        .tags::-webkit-scrollbar { display: none; }
+        .tag { background: #272727; padding: 6px 15px; border-radius: 8px; cursor: pointer; font-size: 14px; transition: 0.3s; border: none; color: white; }
+        .tag:hover, .tag.active { background: white; color: black; }
+
+        /* Video Grid */
+        .video-container { padding: 20px 2%; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .video-card { cursor: pointer; transition: 0.2s; }
+        .video-card:hover { transform: scale(1.02); }
+        .thumb-container { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 12px; overflow: hidden; background: #222; }
+        .thumb-container img { width: 100%; height: 100%; object-fit: cover; }
+        .video-info { display: flex; margin-top: 10px; gap: 12px; }
+        .avatar { width: 36px; height: 36px; border-radius: 50%; background: #333; flex-shrink: 0; }
+        .details h3 { font-size: 14px; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .details p { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+        /* Player Modal */
+        #playerOverlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 9999; justify-content: center; align-items: center;
+        }
+        .modal-body { width: 90%; max-width: 900px; position: relative; }
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 10px; overflow: hidden; background: black; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+        .close-btn { position: absolute; top: -45px; right: 0; color: white; font-size: 35px; cursor: pointer; }
+
+        @media (max-width: 768px) { .search-box { width: 60%; } .video-container { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="#" class="logo">PhimTube</a>
+    <div class="search-box">
+        <input type="text" id="query" placeholder="Tìm kiếm phim...">
+        <button onclick="doSearch()">🔍</button>
+    </div>
+    <div style="width: 40px"></div>
+</nav>
+
+<div class="tags" id="tagList">
+    <button class="tag active" onclick="searchByTag('Phim mới 2024', this)">Tất cả</button>
+    <button class="tag" onclick="searchByTag('Trailer phim hành động', this)">Hành động</button>
+    <button class="tag" onclick="searchByTag('Phim hài hước lồng tiếng', this)">Hài hước</button>
+    <button class="tag" onclick="searchByTag('Phim hoạt hình 3D', this)">Hoạt hình</button>
+    <button class="tag" onclick="searchByTag('Review phim bom tấn', this)">Review Phim</button>
+</div>
+
+<div class="video-container" id="videoGrid">
+    </div>
+
+<div id="playerOverlay" onclick="closeVideo()">
+    <div class="modal-body" onclick="event.stopPropagation()">
+        <span class="close-btn" onclick="closeVideo()">&times;</span>
+        <div class="video-wrapper">
+            <iframe id="mainPlayer" src="" allow="autoplay; fullscreen"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Dán mã API bạn vừa lấy được vào đây
+    const MY_KEY = 'AIzaSyB9G8DAQjpcfaMclEJUYpQ5HKwYGcu-xy0';
+
+    async function getVideos(keyword) {
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(keyword)}&type=video&maxResults=20&key=${MY_KEY}`;
+        
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if(data.error) {
+                alert("Lỗi API: " + data.error.message);
+                return;
+            }
+            render(data.items);
+        } catch (err) {
+            console.error("Lỗi mạng:", err);
+        }
+    }
+
+    function render(items) {
+        const grid = document.getElementById('videoGrid');
+        grid.innerHTML = items.map(item => `
+            <div class="video-card" onclick="playVideo('${item.id.videoId}')">
+                <div class="thumb-container">
+                    <img src="${item.snippet.thumbnails.high.url}">
+                </div>
+                <div class="video-info">
+                    <div class="avatar"></div>
+                    <div class="details">
+                        <h3>${item.snippet.title}</h3>
+                        <p>${item.snippet.channelTitle}</p>
+                        <p>100K lượt xem • 2 giờ trước</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // SỬA LỖI PHÁT VIDEO: Sử dụng định dạng nhúng chuẩn xác nhất
+    function playVideo(id) {
+        const player = document.getElementById('mainPlayer');
+        // Sử dụng youtube-nocookie để tránh lỗi chặn và bảo mật hơn
+        player.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&modestbranding=1`;
+        document.getElementById('playerOverlay').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeVideo() {
+        document.getElementById('playerOverlay').style.display = 'none';
+        document.getElementById('mainPlayer').src = ''; // Dừng hẳn video khi đóng
+        document.body.style.overflow = 'auto';
+    }
+
+    function doSearch() {
+        const val = document.getElementById('query').value;
+        if(val) getVideos(val);
+    }
+
+    function searchByTag(tag, btn) {
+        document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        getVideos(tag);
+    }
+
+    // Enter để tìm kiếm
+    document.getElementById('query').addEventListener('keypress', (e) => {
+        if(e.key === 'Enter') doSearch();
+    });
+
+    // Tự động load khi mở trang
+    getVideos('Phim mới nhất 2026');
+</script>
+
+</body>
+</html>
